@@ -1,0 +1,30 @@
+[package]
+name = "microverse-model"
+version = "0.1.0"
+edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+license = "MIT OR Apache-2.0"
+description = "A Rust implementation of the Microverse Model"
+homepage = "https://github.com/yourusername/microverse-model"
+repository = "https://github.com/yourusername/microverse-model"
+documentation = "https://docs.rs/microverse-model"
+readme = "README.md"
+keywords = ["microverse", "model", "simulation"]
+categories = ["science", "simulation"]
+rust-version = "1.70"
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+
+[profile.bench]
+debug = true
+
+[[bench]]
+name = "main"
+harness = false

@@ -1,0 +1,197 @@
+# Common .clinerules for Rust Projects
+
+## What are .clinerules?
+
+`.clinerules` files provide project-specific instructions to AI coding assistants like Cline. They help maintain consistency and follow project conventions automatically.
+
+## Basic Rust Project Rules
+
+### 1. Core Style and Formatting
+
+```
+# Use rustfmt for all code formatting
+- Always run `cargo fmt` before committing
+- Follow standard Rust naming conventions (snake_case for functions/variables, PascalCase for types)
+- Use idiomatic Rust patterns and avoid unnecessary clones
+```
+
+### 2. Error Handling
+
+```
+# Error handling standards
+- Use `Result<T, E>` for operations that can fail
+- Use `anyhow` or `thiserror` for error handling (specify which one your project uses)
+- Avoid unwrap() and expect() in production code except in tests or when panic is truly the correct behavior
+- Provide meaningful error messages with context
+```
+
+### 3. Documentation
+
+```
+# Documentation requirements
+- Add doc comments (///) for all public items
+- Do NOT use comments for complex functions. Try to keep the code as clean as possible.
+- Run `cargo doc` to verify documentation builds correctly
+- Add module-level documentation explaining the purpose of each module
+```
+
+### 4. Testing
+
+```
+# Testing standards
+- Write unit tests for all public functions
+- Place unit tests in a `tests` module at the bottom of each file
+- Integration tests go in the `tests/` directory
+- Run `cargo test` before committing
+- Aim for meaningful test coverage, not just high percentages
+```
+
+### 5. Dependencies and Features
+
+```
+# Dependency management
+- Keep dependencies minimal and well-justified
+- Use specific version requirements, avoid wildcards
+- Enable only necessary feature flags
+- Run `cargo clippy` to catch common mistakes
+- Run `cargo check` frequently during development
+```
+
+## Example .clinerules File for a Web API Project
+
+```
+# Project-specific rules for Rust web API
+
+## Code Style
+- Use rustfmt with default settings
+- Maximum line length: 100 characters (configured in rustfmt.toml)
+- Use `cargo clippy` with deny(clippy::all) in CI
+
+## Architecture
+- Keep handlers thin - business logic belongs in services
+- Use dependency injection via constructor parameters
+
+## Error Handling
+- Use `anyhow::Result` for application errors
+- Use `thiserror` for library errors that need to be exported
+- Never use unwrap() outside of tests
+- Use `?` operator for error propagation
+
+## API Conventions
+- All endpoints return JSON
+- Use HTTP status codes correctly (200, 201, 400, 404, 500, etc.)
+- Include request/response examples in endpoint documentation
+- Validate all input using serde validation or validator crate
+
+## Testing
+- Unit tests for business logic in services
+- Use test fixtures defined in tests/fixtures.rs
+- Mock external services in tests
+- Run `cargo test --all-features` before pushing
+
+## Async/Concurrency
+- Use tokio runtime (already configured in main.rs)
+- All I/O operations must be async
+- Use Arc<Mutex<T>> sparingly - prefer message passing with channels
+- Don't block the runtime - use spawn_blocking for CPU-intensive work
+
+## Logging
+- Use tracing crate for structured logging
+- Log at appropriate levels: error, warn, info, debug, trace
+- Include context in error logs (user_id, request_id, etc.)
+- Never log sensitive data (passwords, tokens, PII)
+
+## Security
+- Validate and sanitize all user input
+- Use parameterized queries to prevent SQL injection
+- Hash passwords with bcrypt or argon2
+- Use secure random for tokens (rand crate with OsRng)
+```
+
+## Example .clinerules for CLI Tool Project
+
+```
+# Rust CLI Tool Project Rules
+
+## Code Organization
+- Main logic should be in lib.rs, not main.rs
+- Keep main.rs minimal - just CLI setup and calling lib functions
+- Separate concerns: parsing, validation, execution
+- Use modules to organize related functionality
+
+## CLI Framework
+- Use clap with derive feature for argument parsing
+- Provide --help text for all commands and flags
+- Include examples in help text
+- Support both long (--flag) and short (-f) options where sensible
+
+## Error Messages
+- User-facing errors should be clear and actionable
+- Suggest fixes when possible ("Did you mean...?")
+- Use colored output for errors (red) and success (green)
+- Include exit codes: 0 for success, non-zero for errors
+
+## Configuration
+- Support config files (TOML preferred)
+- Command line args override config file settings
+- Look for config in standard locations (~/.config/myapp/, etc.)
+- Provide `--config` flag to specify custom config location
+
+## Output
+- Default to human-readable output
+- Provide --json flag for machine-readable output
+- Use --quiet flag to suppress non-essential output
+- Progress indicators for long-running operations
+
+## File Handling
+- Always handle file I/O errors gracefully
+- Respect --force flag for overwriting files
+- Support reading from stdin when no file specified
+- Create parent directories as needed
+
+## Testing
+- Test CLI parsing with different argument combinations
+- Test error cases (missing files, invalid input, etc.)
+- Use assert_cmd crate for integration testing CLI
+- Test both stdout and stderr output
+```
+
+## General Best Practices
+
+```
+# Cross-cutting concerns for all Rust projects
+
+## Before Committing
+1. cargo fmt
+2. cargo clippy -- -D warnings
+3. cargo test --all-features
+4. cargo doc --no-deps (verify docs build)
+5. Check for unused dependencies with cargo-udeps
+
+## CI/CD Expectations
+- All tests must pass
+- No clippy warnings
+- Formatted with rustfmt
+- Documentation builds without warnings
+- No unused dependencies
+
+## Code Review Standards
+- PRs should be focused and reasonably sized
+- Include tests for new functionality
+- Update documentation for API changes
+- Add changelog entry if applicable
+- Respond to clippy suggestions or explain why ignored
+
+## Performance Considerations
+- Profile before claiming performance improvements
+- Include benchmarks for performance-critical code
+- Document Big-O complexity for algorithms
+- Consider both time and space complexity
+```
+
+## Commit Best Practices
+Follow standards of this following link: https://www.kernel.org/doc/html/latest/process/submitting-patches.html
+
+## Cline
+
+1. All files generated by cline must be in docs/memorybank/
