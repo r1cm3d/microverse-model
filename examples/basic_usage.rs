@@ -1,7 +1,5 @@
 // Example usage of the Microverse Model library
 
-
-
 fn main() {
     println!("Microverse Model Example");
 
