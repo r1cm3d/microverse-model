@@ -1,11 +1,7 @@
 # Microverse Model
 
-[![Crates.io](https://img.shields.io/crates/v/microverse-model.svg)](https://crates.io/crates/microverse-model)
-[![Documentation](https://docs.rs/microverse-model/badge.svg)](https://docs.rs/microverse-model)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Build Status](https://github.com/yourusername/microverse-model/workflows/CI/badge.svg)](https://github.com/yourusername/microverse-model/actions)
-[![codecov](https://codecov.io/gh/yourusername/microverse-model/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/microverse-model)
 
 A Rust implementation of the Microverse Model, providing efficient and scalable simulation capabilities.
 
@@ -68,47 +64,35 @@ For more detailed examples, see the [examples](examples/) directory.
 - Rust 1.70 or higher
 - Cargo (included with Rust)
 
-### Building
+### Using Makefile
+
+The project includes a `Makefile` for common development tasks.
+
+Run `make help` to see available targets.
 
 ```bash
-cargo build --release
+make help
 ```
 
-### Testing
+Common commands:
 
-```bash
-cargo test
-```
+- `make build`: Build the project (dev)
+- `make release`: Build the project (release)
+- `make run`: Run the project
+- `make test`: Run tests
+- `make fmt`: Format code using rustfmt
+- `make clippy`: Run clippy linter
+- `make doc`: Build and open documentation
+- `make clean`: Clean build artifacts
+- `make run-example`: Run the basic_usage example
 
-### Benchmarking
+If you prefer using `cargo` directly:
 
-```bash
-cargo bench
-```
-
-### Formatting
-
-```bash
-cargo fmt
-```
-
-### Linting
-
-```bash
-cargo clippy -- -D warnings
-```
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
-
-### Development Process
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- Build: `cargo build --release`
+- Test: `cargo test`
+- Bench: `cargo bench`
+- Format: `cargo fmt`
+- Lint: `cargo clippy -- -D warnings`
 
 ## 📄 License
 
