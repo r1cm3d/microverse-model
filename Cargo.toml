@@ -2,11 +2,11 @@
 name = "microverse-model"
 version = "0.1.0"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["r1cm3d"]
 license = "MIT OR Apache-2.0"
-description = "A Rust implementation of the Microverse Model"
-homepage = "https://github.com/yourusername/microverse-model"
-repository = "https://github.com/yourusername/microverse-model"
+description = "A SLM implemented in Rust, using all subtitles from the Rick and Morty series as training data."
+homepage = "https://github.com/r1cm3d/microverse-model"
+repository = "https://github.com/r1cm3d/microverse-model"
 documentation = "https://docs.rs/microverse-model"
 readme = "README.md"
 keywords = ["microverse", "model", "simulation"]
@@ -19,7 +19,6 @@ scraper = "0.18"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
-csv = "1.1"
 
 [[bin]]
 name = "scraper"
