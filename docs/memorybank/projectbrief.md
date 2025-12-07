@@ -1,16 +1,15 @@
 # Project Brief: Microverse Model
 
 ## Overview
-Microverse Model is a Rust implementation designed to provide efficient and scalable simulation capabilities. It aims to leverage Rust's performance and memory safety to handle large-scale simulations.
+Microverse Model is a Small Language Model (SLM) implemented in Rust, specifically designed to be trained on the complete collection of subtitles and transcripts from the **Rick and Morty** series. The project aims to explore the capabilities of SLMs when trained on highly specific, character-driven datasets.
 
 ## Key Features
-- **High Performance**: Built with Rust for maximum performance and memory safety.
-- **Scalable Architecture**: Designed to handle large-scale simulations.
-- **Type Safety**: Leverages Rust's type system for compile-time guarantees.
-- **Extensible**: Modular design allows for easy extension and customization.
+- **Specialized Training Data**: Utilizes a comprehensive dataset of Rick and Morty transcripts scraped from fandom wikis.
+- **Rust Implementation**: Leverages Rust's performance and memory safety for efficient model training and inference.
+- **Data Collection Pipeline**: Includes a robust scraper to automate the retrieval and formatting of training data.
+- **Extensible Architecture**: Designed to allow experimentation with different model architectures and training parameters.
 
 ## Core Requirements
 - Rust 1.70 or higher.
-- Efficient simulation execution.
-- Modular and extensible code structure.
-- Comprehensive documentation and examples.
+- Access to the internet for data scraping (initially).
+- `datasets/` directory for storing training data (CSV/JSON).

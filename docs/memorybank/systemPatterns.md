@@ -1,27 +1,33 @@
 # System Patterns
 
 ## Architecture
-The project is designed to be a Rust library (`microverse-model`) that exports core simulation functionalities.
-- **Current State**: Initial scaffolding with `src/main.rs`.
-- **Target Architecture**:
-    - **Core Library (`lib.rs`)**: Contains the `Microverse` struct, `Config` struct, and core simulation logic.
-    - **Binary/Examples**: `src/main.rs` or `examples/` directory for demonstrating usage.
+
+The project consists of two main components:
+1.  **Data Ingestion (Scraper)**: A standalone binary responsible for fetching, parsing, and cleaning transcript data.
+2.  **Model Engine (Library/Binary)**: The core SLM implementation (currently in early stages).
+
+### Directory Structure
+```
+microverse-model/
+├── src/
+│   ├── lib.rs          # Core model logic (placeholder)
+│   └── main.rs         # Inference/Training CLI (placeholder)
+├── scripts/
+│   └── scraper.rs      # Data collection tool
+├── datasets/
+│   └── rick_morty_all_transcripts.csv  # Training data
+├── examples/           # Usage examples
+└── docs/memorybank/    # Project documentation & context
+```
 
 ## Design Patterns
-- **Configuration Pattern**: Uses a `Config` struct to separate configuration from execution logic.
-- **Simulation Loop**: The `run()` method encapsulates the simulation lifecycle.
-- **Modularity**: Code should be organized into modules (e.g., `simulation`, `config`, `world`) to maintain separation of concerns.
 
-## Code Organization (Planned)
-```
-src/
-  lib.rs        # Library entry point
-  simulation.rs # Simulation engine logic
-  config.rs     # Configuration definitions
-  main.rs       # Optional CLI entry point or simple runner
-```
+- **Scripts as Binaries**: Auxiliary tools like the scraper are located in `scripts/` but defined as `[[bin]]` targets in `Cargo.toml`, allowing them to be run via `cargo run --bin scraper`.
+- **Data-Driven**: The model relies heavily on the quality and structure of the `datasets/` directory. The scraper ensures data is normalized (CSV/JSON).
+- **Asynchronous I/O**: The scraper uses `tokio` and `reqwest` for efficient, non-blocking network requests to fetch episode data.
 
-## Conventions
-- Follow standard Rust naming conventions.
-- Use `Result` for error handling.
-- Documentation for all public APIs.
+## Data Pipeline
+1.  **Fetch**: `scraper` retrieves episode lists from the wiki.
+2.  **Parse**: HTML is parsed using `scraper` crate to extract dialogue lines.
+3.  **Clean**: Text is normalized (whitespace trimming, quote handling).
+4.  **Store**: Data is saved to `datasets/` in both JSON (rich structure) and CSV (flat structure) formats.

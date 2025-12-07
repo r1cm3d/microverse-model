@@ -1,30 +1,35 @@
 # Progress Status
 
 ## Status
-- **Current Phase**: Initialization
-- **Progress**: 5%
+- **Current Phase**: Data Analysis & Model Design
+- **Progress**: 20%
 
 ## Todo List
 
-### Initialization
+### Initialization & Context
 - [x] Initialize Memory Bank
-- [ ] Set up project structure (lib.rs vs main.rs)
+- [x] Update Memory Bank to reflect SLM project goals
+- [x] Set up project structure
 
-### Core Development
-- [ ] Define `Microverse` struct
-- [ ] Define `Config` struct
-- [ ] Implement `configure` method
-- [ ] Implement `run` method
-- [ ] Implement simulation loop
+### Data Pipeline
+- [x] Implement Scraper (`scripts/scraper.rs`)
+- [x] Scrape Transcripts (Seasons 1-8)
+- [x] Generate Dataset (`datasets/rick_morty_all_transcripts.csv`)
+- [ ] Data Cleaning & Preprocessing (Tokenization preparation)
 
-### Testing & Quality
-- [ ] Add unit tests
-- [ ] Add integration tests
-- [ ] Setup CI/CD (GitHub Actions)
+### Model Development
+- [ ] Select ML Framework (Candle/Tch-rs)
+- [ ] Define Model Architecture
+- [ ] Implement Training Loop
+- [ ] Train Initial Model
+
+### Testing & Evaluation
+- [ ] Evaluate Model Output
+- [ ] Fine-tune Hyperparameters
 
 ### Documentation
-- [ ] API Documentation (`cargo doc`)
-- [ ] Update README.md with detailed usage
+- [ ] API Documentation
+- [ ] Usage Guide
 
 ## Known Issues
-- `src/lib.rs` is missing, but required for the library architecture described in README.
+- `src/lib.rs` and `src/main.rs` are currently placeholders and need to be implemented with the actual model logic.
