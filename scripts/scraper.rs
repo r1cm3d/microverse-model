@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 struct DialogueLine {
     index: usize,
     #[serde(rename = "season no.")]
@@ -22,10 +22,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Starting Rick and Morty transcript scraper...");
 
     let mut all_dialogues = Vec::new();
-    let mut current_index = 2488; // Starting index after Season 3 (from rick_and_morty.csv)
+    let mut current_index = 0;
 
-    // Scrape seasons 4 to 8
-    for season in 4..=8 {
+    // Scrape seasons 1 to 8
+    for season in 1..=8 {
         println!("\n=== Scraping Season {} ===", season);
         let episodes = get_episode_list(season).await?;
 
@@ -58,15 +58,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Save to JSON
     let json = serde_json::to_string_pretty(&all_dialogues)?;
-    let mut file = File::create("datasets/rick_morty_s4_s8_transcripts.json")?;
+    let mut file = File::create("datasets/rick_morty_all_transcripts.json")?;
     file.write_all(json.as_bytes())?;
 
     // Save to CSV
-    save_to_csv(&all_dialogues, "datasets/rick_morty_s4_s8_transcripts.csv")?;
+    save_to_csv(&all_dialogues, "datasets/rick_morty_all_transcripts.csv")?;
 
     println!("\n=== Complete ===");
     println!("Total lines scraped: {}", all_dialogues.len());
-    println!("Saved to: datasets/rick_morty_s4_s8_transcripts.json and .csv");
+    println!("Saved to: datasets/rick_morty_all_transcripts.json and .csv");
 
     Ok(())
 }
@@ -78,7 +78,14 @@ async fn get_episode_list(
 
     let response = reqwest::get(&url).await?;
     let body = response.text().await?;
-    let document = Html::parse_document(&body);
+
+    parse_episode_list_html(&body)
+}
+
+fn parse_episode_list_html(
+    html: &str,
+) -> Result<Vec<(u8, String, String)>, Box<dyn std::error::Error>> {
+    let document = Html::parse_document(html);
 
     let table_selector = Selector::parse("table").unwrap();
     let row_selector = Selector::parse("tr").unwrap();
@@ -145,7 +152,18 @@ async fn scrape_episode(
 ) -> Result<Vec<DialogueLine>, Box<dyn std::error::Error>> {
     let response = reqwest::get(url).await?;
     let body = response.text().await?;
-    let document = Html::parse_document(&body);
+
+    parse_episode_content_html(&body, season, episode_no, episode_name, start_index)
+}
+
+fn parse_episode_content_html(
+    html: &str,
+    season: u8,
+    episode_no: u8,
+    episode_name: &str,
+    start_index: usize,
+) -> Result<Vec<DialogueLine>, Box<dyn std::error::Error>> {
+    let document = Html::parse_document(html);
 
     let mut dialogues = Vec::new();
     let mut current_index = start_index;
@@ -195,10 +213,16 @@ fn save_to_csv(
     dialogues: &[DialogueLine],
     filename: &str,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let mut file = File::create(filename)?;
+    let file = File::create(filename)?;
+    write_dialogues_to_csv(file, dialogues)
+}
 
+fn write_dialogues_to_csv<W: Write>(
+    mut writer: W,
+    dialogues: &[DialogueLine],
+) -> Result<(), Box<dyn std::error::Error>> {
     // Write header matching rick_and_morty.csv
-    writeln!(file, "index,season no.,episode no.,episode name,name,line")?;
+    writeln!(writer, "index,season no.,episode no.,episode name,name,line")?;
 
     // Write data
     for dialogue in dialogues {
@@ -209,11 +233,179 @@ fn save_to_csv(
 
         // Manually write CSV line to ensure quoting of string fields
         writeln!(
-            file,
+            writer,
             "{},{},{},\"{}\",\"{}\",\"{}\"",
             dialogue.index, dialogue.season, dialogue.episode_no, episode, character, line
         )?;
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_dialogue_line_simple() {
+        let input = "Rick: Wubba lubba dub dub!";
+        let result = parse_dialogue_line(input);
+        assert_eq!(
+            result,
+            Some(("Rick".to_string(), "Wubba lubba dub dub!".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_parse_dialogue_line_with_spaces() {
+        let input = "  Morty  :  Aw jeez, Rick.  ";
+        let result = parse_dialogue_line(input);
+        assert_eq!(
+            result,
+            Some(("Morty".to_string(), "Aw jeez, Rick.".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_parse_dialogue_line_invalid() {
+        assert_eq!(parse_dialogue_line("No colon here"), None);
+        assert_eq!(parse_dialogue_line(": Empty name"), None);
+        assert_eq!(parse_dialogue_line("Name only:"), None); // Empty line part becomes "" after trim? Let's check logic.
+                                                           // "Name only:" -> name="Name only", line="" -> !line.is_empty() check fails. So None.
+    }
+
+    #[test]
+    fn test_parse_dialogue_line_name_too_long() {
+        let long_name = "a".repeat(51);
+        let input = format!("{}: Hello", long_name);
+        assert_eq!(parse_dialogue_line(&input), None);
+    }
+
+    #[test]
+    fn test_write_dialogues_to_csv() {
+        let dialogues = vec![
+            DialogueLine {
+                index: 1,
+                season: 1,
+                episode_no: 1,
+                episode: "Pilot".to_string(),
+                character: "Rick".to_string(),
+                line: "Hello".to_string(),
+            },
+            DialogueLine {
+                index: 2,
+                season: 1,
+                episode_no: 1,
+                episode: "Pilot".to_string(),
+                character: "Morty".to_string(),
+                line: "Hi".to_string(),
+            },
+        ];
+
+        let mut buffer = Vec::new();
+        let result = write_dialogues_to_csv(&mut buffer, &dialogues);
+        assert!(result.is_ok());
+
+        let output = String::from_utf8(buffer).unwrap();
+        let expected = "index,season no.,episode no.,episode name,name,line\n\
+                        1,1,1,\"Pilot\",\"Rick\",\"Hello\"\n\
+                        2,1,1,\"Pilot\",\"Morty\",\"Hi\"\n";
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_write_dialogues_to_csv_escaping() {
+        let dialogues = vec![DialogueLine {
+            index: 1,
+            season: 1,
+            episode_no: 1,
+            episode: "The \"Pilot\"".to_string(),
+            character: "Rick \"C-137\"".to_string(),
+            line: "I said \"Hello\"".to_string(),
+        }];
+
+        let mut buffer = Vec::new();
+        write_dialogues_to_csv(&mut buffer, &dialogues).unwrap();
+        let output = String::from_utf8(buffer).unwrap();
+
+        // Original logic: Replace " with '
+        let expected = "index,season no.,episode no.,episode name,name,line\n\
+                        1,1,1,\"The 'Pilot'\",\"Rick 'C-137'\",\"I said 'Hello'\"\n";
+
+        assert_eq!(output, expected);
+    }
+
+    #[test]
+    fn test_parse_episode_list_html() {
+        let html = r#"
+        <html>
+            <body>
+                <table>
+                    <tr>
+                        <td>1</td>
+                        <td>101</td>
+                        <td><a href="/wiki/Pilot" title="Pilot">Pilot</a></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>102</td>
+                        <td><a href="/wiki/Lawnmower_Dog" title="Lawnmower Dog">Lawnmower Dog</a></td>
+                    </tr>
+                </table>
+            </body>
+        </html>
+        "#;
+
+        let result = parse_episode_list_html(html);
+        assert!(result.is_ok());
+        let episodes = result.unwrap();
+
+        assert_eq!(episodes.len(), 2);
+        assert_eq!(
+            episodes[0],
+            (
+                1,
+                "Pilot".to_string(),
+                "https://rickandmorty.fandom.com/wiki/Pilot/Transcript".to_string()
+            )
+        );
+        assert_eq!(
+            episodes[1],
+            (
+                2,
+                "Lawnmower Dog".to_string(),
+                "https://rickandmorty.fandom.com/wiki/Lawnmower_Dog/Transcript".to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn test_parse_episode_content_html() {
+        let html = r#"
+        <html>
+            <body>
+                <div class="mw-parser-output">
+                    <p>Rick: Come on Morty!</p>
+                    <p>Morty: Okay Rick.</p>
+                    <p>Random text without colon.</p>
+                </div>
+            </body>
+        </html>
+        "#;
+
+        let result = parse_episode_content_html(html, 1, 1, "Pilot", 100);
+        assert!(result.is_ok());
+        let dialogues = result.unwrap();
+
+        assert_eq!(dialogues.len(), 2);
+
+        assert_eq!(dialogues[0].index, 100);
+        assert_eq!(dialogues[0].character, "Rick");
+        assert_eq!(dialogues[0].line, "Come on Morty!");
+
+        assert_eq!(dialogues[1].index, 101);
+        assert_eq!(dialogues[1].character, "Morty");
+        assert_eq!(dialogues[1].line, "Okay Rick.");
+    }
 }

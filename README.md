@@ -33,6 +33,7 @@ Common commands:
 - `make doc`: Build and open documentation
 - `make clean`: Clean build artifacts
 - `make run-example`: Run the basic_usage example
+- `make scraper`: Run the transcript scraper
 
 If you prefer using `cargo` directly:
 
