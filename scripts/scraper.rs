@@ -24,7 +24,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut all_dialogues = Vec::new();
     let mut current_index = 0;
 
-    // Scrape seasons 1 to 8
     for season in 1..=8 {
         println!("\n=== Scraping Season {} ===", season);
         let episodes = get_episode_list(season).await?;
@@ -51,17 +50,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            // Be respectful - add delay between requests
             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         }
     }
 
-    // Save to JSON
     let json = serde_json::to_string_pretty(&all_dialogues)?;
     let mut file = File::create("datasets/rick_morty_all_transcripts.json")?;
     file.write_all(json.as_bytes())?;
 
-    // Save to CSV
     save_to_csv(&all_dialogues, "datasets/rick_morty_all_transcripts.csv")?;
 
     println!("\n=== Complete ===");
@@ -91,7 +87,6 @@ fn parse_episode_list_html(
     let row_selector = Selector::parse("tr").unwrap();
     let cell_selector = Selector::parse("td").unwrap();
     let link_selector = Selector::parse("a").unwrap();
-    // Some tables might have headers in the first row
 
     let mut episodes = Vec::new();
 
@@ -104,20 +99,13 @@ fn parse_episode_list_html(
                 continue;
             }
 
-            // Try to parse the first cell as episode number
-            // Column 0: No. in season
-            // Column 1: No. overall
-            // Column 2: Title
-
             let episode_no_str = cells[0].text().collect::<String>().trim().to_string();
-            // Remove double quotes or special chars if any
             let episode_no_clean = episode_no_str.replace("\"", "");
             let episode_no = match episode_no_clean.parse::<u8>() {
                 Ok(n) => n,
-                Err(_) => continue, // Skip header or non-episode rows
+                Err(_) => continue,
             };
 
-            // Extract title and link from the 3rd cell (index 2)
             if let Some(link) = cells[2].select(&link_selector).next() {
                 let title = link
                     .value()
@@ -128,7 +116,6 @@ fn parse_episode_list_html(
 
                 if !href.is_empty() {
                     let full_url = format!("https://rickandmorty.fandom.com{}/Transcript", href);
-                    // Remove " (episode)" from title if present, just in case
                     let clean_title = title.replace(" (episode)", "");
                     episodes.push((episode_no, clean_title, full_url));
                 }
@@ -168,7 +155,6 @@ fn parse_episode_content_html(
     let mut dialogues = Vec::new();
     let mut current_index = start_index;
 
-    // The transcript is usually in a div with class "mw-parser-output"
     let content_selector = Selector::parse("div.mw-parser-output").unwrap();
     let p_selector = Selector::parse("p, dl, dd").unwrap();
 
@@ -221,17 +207,13 @@ fn write_dialogues_to_csv<W: Write>(
     mut writer: W,
     dialogues: &[DialogueLine],
 ) -> Result<(), Box<dyn std::error::Error>> {
-    // Write header matching rick_and_morty.csv
     writeln!(writer, "index,season no.,episode no.,episode name,name,line")?;
 
-    // Write data
     for dialogue in dialogues {
-        // Replace double quotes with single quotes as requested
         let episode = dialogue.episode.replace("\"", "'");
         let character = dialogue.character.replace("\"", "'");
         let line = dialogue.line.replace("\"", "'");
 
-        // Manually write CSV line to ensure quoting of string fields
         writeln!(
             writer,
             "{},{},{},\"{}\",\"{}\",\"{}\"",
@@ -270,8 +252,7 @@ mod tests {
     fn test_parse_dialogue_line_invalid() {
         assert_eq!(parse_dialogue_line("No colon here"), None);
         assert_eq!(parse_dialogue_line(": Empty name"), None);
-        assert_eq!(parse_dialogue_line("Name only:"), None); // Empty line part becomes "" after trim? Let's check logic.
-                                                           // "Name only:" -> name="Name only", line="" -> !line.is_empty() check fails. So None.
+        assert_eq!(parse_dialogue_line("Name only:"), None);
     }
 
     #[test]
@@ -329,7 +310,6 @@ mod tests {
         write_dialogues_to_csv(&mut buffer, &dialogues).unwrap();
         let output = String::from_utf8(buffer).unwrap();
 
-        // Original logic: Replace " with '
         let expected = "index,season no.,episode no.,episode name,name,line\n\
                         1,1,1,\"The 'Pilot'\",\"Rick 'C-137'\",\"I said 'Hello'\"\n";
 
