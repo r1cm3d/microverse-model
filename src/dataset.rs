@@ -31,10 +31,8 @@ impl Dataset {
             }
         }
 
-        let input_tensor =
-            Tensor::from_vec(inputs, (batch_size, self.context_len), device)?;
-        let target_tensor =
-            Tensor::from_vec(targets, (batch_size, self.context_len), device)?;
+        let input_tensor = Tensor::from_vec(inputs, (batch_size, self.context_len), device)?;
+        let target_tensor = Tensor::from_vec(targets, (batch_size, self.context_len), device)?;
 
         Ok((input_tensor, target_tensor))
     }
@@ -44,8 +42,8 @@ impl Dataset {
 mod tests {
     use super::*;
     use candle_core::Device;
-    use rand::SeedableRng;
     use rand::rngs::StdRng;
+    use rand::SeedableRng;
     use std::fs;
 
     #[test]

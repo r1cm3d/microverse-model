@@ -3,8 +3,8 @@ use crate::model::{Gpt, ModelConfig};
 use anyhow::Context;
 use candle_core::{DType, Device, Result as CandleResult, Tensor};
 use candle_nn::{AdamW, Optimizer, ParamsAdamW, VarBuilder, VarMap};
-use rand::SeedableRng;
 use rand::rngs::StdRng;
+use rand::SeedableRng;
 use std::fs;
 
 pub struct TrainConfig {
@@ -59,7 +59,9 @@ pub fn train(config: TrainConfig) -> anyhow::Result<()> {
     let model = Gpt::new(&model_cfg, vb).context("failed to build model")?;
 
     if let Some(ref path) = config.resume_from {
-        varmap.load(path).with_context(|| format!("failed to load checkpoint: {path}"))?;
+        varmap
+            .load(path)
+            .with_context(|| format!("failed to load checkpoint: {path}"))?;
         println!("Resumed from {path}");
     }
 
@@ -82,17 +84,26 @@ pub fn train(config: TrainConfig) -> anyhow::Result<()> {
 
         let logits = model.forward(&inputs).context("forward pass failed")?;
         let loss = cross_entropy_loss(&logits, &targets).context("loss computation failed")?;
-        optimizer.backward_step(&loss).context("backward step failed")?;
+        optimizer
+            .backward_step(&loss)
+            .context("backward step failed")?;
 
         if step % config.eval_interval == 0 {
-            let train_loss = loss.to_scalar::<f32>().context("failed to read train loss")?;
+            let train_loss = loss
+                .to_scalar::<f32>()
+                .context("failed to read train loss")?;
             let val_loss = compute_val_loss(&val_ds, &model, config.batch_size, &mut rng, &device)?;
-            println!("step {:>5} | train_loss: {:.4} | val_loss: {:.4}", step, train_loss, val_loss);
+            println!(
+                "step {:>5} | train_loss: {:.4} | val_loss: {:.4}",
+                step, train_loss, val_loss
+            );
         }
 
         if step % config.checkpoint_interval == 0 {
             let ckpt_path = format!("{}/ckpt_{:06}.safetensors", config.checkpoint_dir, step);
-            varmap.save(&ckpt_path).with_context(|| format!("failed to save checkpoint: {ckpt_path}"))?;
+            varmap
+                .save(&ckpt_path)
+                .with_context(|| format!("failed to save checkpoint: {ckpt_path}"))?;
             println!("Checkpoint saved: {ckpt_path}");
         }
     }
@@ -116,7 +127,9 @@ fn compute_val_loss(
             .context("failed to generate val batch")?;
         let logits = model.forward(&inputs).context("val forward pass failed")?;
         let loss = cross_entropy_loss(&logits, &targets).context("val loss failed")?;
-        total += loss.to_scalar::<f32>().context("failed to read val loss scalar")?;
+        total += loss
+            .to_scalar::<f32>()
+            .context("failed to read val loss scalar")?;
     }
     Ok(total / n as f32)
 }

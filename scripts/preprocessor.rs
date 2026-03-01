@@ -1,7 +1,7 @@
 use microverse_model::{write_dialogues_to_csv, DialogueLine};
-use rand::SeedableRng;
-use rand::seq::SliceRandom;
 use rand::rngs::StdRng;
+use rand::seq::SliceRandom;
+use rand::SeedableRng;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 

@@ -1,4 +1,4 @@
-.PHONY: all build run test clean fmt clippy doc scraper preprocess train help
+.PHONY: all build run test clean fmt clippy doc scraper preprocess train generate speak venv help
 
 # Default target
 all: build
@@ -51,6 +51,34 @@ preprocess:
 train:
 	cargo run --release -- train
 
+CHECKPOINT ?=
+CHARACTER  ?= RICK
+INPUT      ?=
+OUTPUT     ?= output.wav
+PYTHON     ?= .venv/bin/python3
+
+# Create Python virtual environment and install TTS dependencies
+# Requires uv (sudo pacman -S uv); uv downloads Python 3.11 automatically
+venv:
+	uv venv --python 3.11 .venv
+	uv pip install --python .venv/bin/python3 -r python/requirements.txt
+
+# Run text generation (CHECKPOINT=path required)
+generate:
+	cargo run --release -- generate \
+		--checkpoint $(CHECKPOINT) \
+		--character $(CHARACTER) \
+		$(if $(INPUT),--input "$(INPUT)",)
+
+# Run voice synthesis (CHECKPOINT=path required); uses .venv by default
+speak:
+	cargo run --release -- speak \
+		--checkpoint $(CHECKPOINT) \
+		--character $(CHARACTER) \
+		--output $(OUTPUT) \
+		--python $(PYTHON) \
+		$(if $(INPUT),--input "$(INPUT)",)
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -66,4 +94,7 @@ help:
 	@echo "  scraper     - Run the transcript scraper"
 	@echo "  preprocess  - Run the data preprocessor"
 	@echo "  train       - Run the training loop (release build)"
+	@echo "  generate    - Run text generation (CHECKPOINT=path required)"
+	@echo "  speak       - Run voice synthesis (CHECKPOINT=path required)"
+	@echo "  venv        - Create .venv and install python/requirements.txt"
 	@echo "  help        - Show this help message"

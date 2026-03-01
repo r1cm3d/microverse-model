@@ -1,7 +1,9 @@
 pub mod dataset;
+pub mod generate;
 pub mod model;
 pub mod tokenizer;
 pub mod train;
+pub mod tts_bridge;
 
 use serde::{Deserialize, Serialize};
 use std::io::Write;

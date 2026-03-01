@@ -1,5 +1,5 @@
 use candle_core::{DType, Device, Result, Tensor};
-use candle_nn::{Embedding, LayerNorm, Linear, Module, VarBuilder, embedding, layer_norm, linear};
+use candle_nn::{embedding, layer_norm, linear, Embedding, LayerNorm, Linear, Module, VarBuilder};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ModelConfig {
@@ -72,11 +72,11 @@ impl CausalSelfAttention {
         let scores = scores.broadcast_add(&mask_slice.unsqueeze(0)?.unsqueeze(0)?)?;
 
         let attn = candle_nn::ops::softmax(&scores, candle_core::D::Minus1)?;
-        let out = attn
-            .matmul(&v)?
-            .transpose(1, 2)?
-            .contiguous()?
-            .reshape((b, t, self.n_heads * self.head_dim))?;
+        let out = attn.matmul(&v)?.transpose(1, 2)?.contiguous()?.reshape((
+            b,
+            t,
+            self.n_heads * self.head_dim,
+        ))?;
 
         self.out_proj.forward(&out)
     }
@@ -176,9 +176,7 @@ impl Gpt {
 
 fn build_causal_mask(context_len: usize, device: &Device) -> Result<Tensor> {
     let mask: Vec<f32> = (0..context_len)
-        .flat_map(|row| {
-            (0..context_len).map(move |col| if col > row { -1e9f32 } else { 0.0f32 })
-        })
+        .flat_map(|row| (0..context_len).map(move |col| if col > row { -1e9f32 } else { 0.0f32 }))
         .collect();
     Tensor::from_vec(mask, (context_len, context_len), device)?.to_dtype(DType::F32)
 }
