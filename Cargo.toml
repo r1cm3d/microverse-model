@@ -24,6 +24,10 @@ tokio = { version = "1", features = ["full"] }
 name = "scraper"
 path = "scripts/scraper.rs"
 
+[[bin]]
+name = "preprocessor"
+path = "scripts/preprocessor.rs"
+
 [dev-dependencies]
 
 [profile.release]

@@ -1,21 +1,9 @@
+use microverse_model::{write_dialogues_to_csv, DialogueLine};
 use scraper::{Html, Selector};
-use serde::{Deserialize, Serialize};
 use std::fs::File;
 use std::io::Write;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
-struct DialogueLine {
-    index: usize,
-    #[serde(rename = "season no.")]
-    season: u8,
-    #[serde(rename = "episode no.")]
-    episode_no: u8,
-    #[serde(rename = "episode name")]
-    episode: String,
-    #[serde(rename = "name")]
-    character: String,
-    line: String,
-}
+type EpisodeEntry = (u8, String, String);
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -67,9 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn get_episode_list(
-    season: u8,
-) -> Result<Vec<(u8, String, String)>, Box<dyn std::error::Error>> {
+async fn get_episode_list(season: u8) -> Result<Vec<EpisodeEntry>, Box<dyn std::error::Error>> {
     let url = format!("https://rickandmorty.fandom.com/wiki/Season_{}", season);
 
     let response = reqwest::get(&url).await?;
@@ -78,9 +64,7 @@ async fn get_episode_list(
     parse_episode_list_html(&body)
 }
 
-fn parse_episode_list_html(
-    html: &str,
-) -> Result<Vec<(u8, String, String)>, Box<dyn std::error::Error>> {
+fn parse_episode_list_html(html: &str) -> Result<Vec<EpisodeEntry>, Box<dyn std::error::Error>> {
     let document = Html::parse_document(html);
 
     let table_selector = Selector::parse("table").unwrap();
@@ -203,27 +187,6 @@ fn save_to_csv(
     write_dialogues_to_csv(file, dialogues)
 }
 
-fn write_dialogues_to_csv<W: Write>(
-    mut writer: W,
-    dialogues: &[DialogueLine],
-) -> Result<(), Box<dyn std::error::Error>> {
-    writeln!(writer, "index,season no.,episode no.,episode name,name,line")?;
-
-    for dialogue in dialogues {
-        let episode = dialogue.episode.replace("\"", "'");
-        let character = dialogue.character.replace("\"", "'");
-        let line = dialogue.line.replace("\"", "'");
-
-        writeln!(
-            writer,
-            "{},{},{},\"{}\",\"{}\",\"{}\"",
-            dialogue.index, dialogue.season, dialogue.episode_no, episode, character, line
-        )?;
-    }
-
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -260,60 +223,6 @@ mod tests {
         let long_name = "a".repeat(51);
         let input = format!("{}: Hello", long_name);
         assert_eq!(parse_dialogue_line(&input), None);
-    }
-
-    #[test]
-    fn test_write_dialogues_to_csv() {
-        let dialogues = vec![
-            DialogueLine {
-                index: 1,
-                season: 1,
-                episode_no: 1,
-                episode: "Pilot".to_string(),
-                character: "Rick".to_string(),
-                line: "Hello".to_string(),
-            },
-            DialogueLine {
-                index: 2,
-                season: 1,
-                episode_no: 1,
-                episode: "Pilot".to_string(),
-                character: "Morty".to_string(),
-                line: "Hi".to_string(),
-            },
-        ];
-
-        let mut buffer = Vec::new();
-        let result = write_dialogues_to_csv(&mut buffer, &dialogues);
-        assert!(result.is_ok());
-
-        let output = String::from_utf8(buffer).unwrap();
-        let expected = "index,season no.,episode no.,episode name,name,line\n\
-                        1,1,1,\"Pilot\",\"Rick\",\"Hello\"\n\
-                        2,1,1,\"Pilot\",\"Morty\",\"Hi\"\n";
-
-        assert_eq!(output, expected);
-    }
-
-    #[test]
-    fn test_write_dialogues_to_csv_escaping() {
-        let dialogues = vec![DialogueLine {
-            index: 1,
-            season: 1,
-            episode_no: 1,
-            episode: "The \"Pilot\"".to_string(),
-            character: "Rick \"C-137\"".to_string(),
-            line: "I said \"Hello\"".to_string(),
-        }];
-
-        let mut buffer = Vec::new();
-        write_dialogues_to_csv(&mut buffer, &dialogues).unwrap();
-        let output = String::from_utf8(buffer).unwrap();
-
-        let expected = "index,season no.,episode no.,episode name,name,line\n\
-                        1,1,1,\"The 'Pilot'\",\"Rick 'C-137'\",\"I said 'Hello'\"\n";
-
-        assert_eq!(output, expected);
     }
 
     #[test]
