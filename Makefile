@@ -1,4 +1,4 @@
-.PHONY: all build run test clean fmt clippy doc scraper preprocess train generate speak venv help
+.PHONY: all build run test clean fmt clippy doc scraper preprocess train generate speak venv diagrams help
 
 # Default target
 all: build
@@ -79,6 +79,10 @@ speak:
 		--python $(PYTHON) \
 		$(if $(INPUT),--input "$(INPUT)",)
 
+# Render all PlantUML diagrams to SVG
+diagrams:
+	plantuml -tsvg docs/diagrams/*.puml
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -97,4 +101,5 @@ help:
 	@echo "  generate    - Run text generation (CHECKPOINT=path required)"
 	@echo "  speak       - Run voice synthesis (CHECKPOINT=path required)"
 	@echo "  venv        - Create .venv and install python/requirements.txt"
+	@echo "  diagrams    - Render docs/diagrams/*.puml to SVG (requires plantuml)"
 	@echo "  help        - Show this help message"

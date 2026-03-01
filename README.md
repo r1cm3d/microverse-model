@@ -82,6 +82,10 @@ optional steps needed only to regenerate them.
 
 - Rust 1.75 or higher with Cargo
 
+**Optional:**
+
+- [PlantUML](https://plantuml.com) — render architecture diagrams to SVG (`make diagrams`)
+
 ---
 
 ## Getting Started
