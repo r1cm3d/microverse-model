@@ -1,6 +1,9 @@
 use microverse_model::{write_dialogues_to_csv, DialogueLine};
+use rand::SeedableRng;
+use rand::seq::SliceRandom;
+use rand::rngs::StdRng;
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let input_path = "datasets/rick_morty_all_transcripts.csv";
@@ -26,6 +29,39 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     write_dialogues_to_csv(file, &cleaned)?;
 
     println!("Saved to {}", output_path);
+
+    write_corpus_files(&cleaned)?;
+
+    Ok(())
+}
+
+fn write_corpus_files(dialogues: &[DialogueLine]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut lines: Vec<String> = dialogues
+        .iter()
+        .map(|d| format!("{}: {}\n", d.character, d.line))
+        .collect();
+
+    let mut rng = StdRng::seed_from_u64(42);
+    lines.shuffle(&mut rng);
+
+    let split = (lines.len() as f64 * 0.9) as usize;
+    let (train, val) = lines.split_at(split);
+
+    let train_path = "datasets/train_corpus.txt";
+    let val_path = "datasets/val_corpus.txt";
+
+    let mut train_file = File::create(train_path)?;
+    for line in train {
+        train_file.write_all(line.as_bytes())?;
+    }
+
+    let mut val_file = File::create(val_path)?;
+    for line in val {
+        val_file.write_all(line.as_bytes())?;
+    }
+
+    println!("Wrote {} lines to {}", train.len(), train_path);
+    println!("Wrote {} lines to {}", val.len(), val_path);
 
     Ok(())
 }

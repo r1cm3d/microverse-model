@@ -11,7 +11,8 @@ documentation = "https://docs.rs/microverse-model"
 readme = "README.md"
 keywords = ["microverse", "model", "simulation"]
 categories = ["science", "simulation"]
-rust-version = "1.70"
+rust-version = "1.75"
+default-run = "microverse-model"
 
 [dependencies]
 reqwest = { version = "0.11", features = ["blocking", "json"] }
@@ -19,6 +20,11 @@ scraper = "0.18"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
+candle-core = "0.9.2"
+candle-nn = "0.9.2"
+clap = { version = "4.5", features = ["derive"] }
+anyhow = "1"
+rand = "0.8"
 
 [[bin]]
 name = "scraper"

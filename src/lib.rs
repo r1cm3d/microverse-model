@@ -1,3 +1,8 @@
+pub mod dataset;
+pub mod model;
+pub mod tokenizer;
+pub mod train;
+
 use serde::{Deserialize, Serialize};
 use std::io::Write;
 

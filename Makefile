@@ -1,4 +1,4 @@
-.PHONY: all build run test clean fmt clippy doc scraper preprocess help
+.PHONY: all build run test clean fmt clippy doc scraper preprocess train help
 
 # Default target
 all: build
@@ -47,6 +47,10 @@ scraper:
 preprocess:
 	cargo run --bin preprocessor
 
+# Run the training loop
+train:
+	cargo run --release -- train
+
 # Help target
 help:
 	@echo "Available targets:"
@@ -61,4 +65,5 @@ help:
 	@echo "  run-example - Run the basic_usage example"
 	@echo "  scraper     - Run the transcript scraper"
 	@echo "  preprocess  - Run the data preprocessor"
+	@echo "  train       - Run the training loop (release build)"
 	@echo "  help        - Show this help message"
