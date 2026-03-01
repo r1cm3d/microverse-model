@@ -1,0 +1,79 @@
+@startuml speak-sequence
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 1.5
+skinparam sequenceParticipantBorderColor #555555
+skinparam sequenceLifeLineBorderColor #888888
+skinparam sequenceBoxBorderColor #888888
+skinparam noteBorderColor #888888
+skinparam noteBackgroundColor #FFFFF0
+
+title End-to-End Speak Pipeline
+
+actor Developer as DEV
+participant "main.rs" as MAIN
+participant "generate.rs" as GEN
+participant "tokenizer.rs" as TOK
+participant "model.rs" as MODEL
+participant "tts_bridge.rs" as BRIDGE
+participant "python/tts.py" as PY
+database "checkpoints/" as CKPT
+database "audio_samples/" as SAMPLES
+database "output.wav" as WAV
+
+DEV -> MAIN : cargo run --release -- speak\n  --checkpoint ckpt_000100.safetensors\n  --character RICK\n  --output output.wav
+
+== Text Generation ==
+
+MAIN -> GEN : generate_text(GenerateConfig {\n  checkpoint, character="RICK",\n  temperature=0.8, top_k=40, top_p=0.9 })
+
+GEN -> MODEL : Gpt::new(ModelConfig::default())
+MODEL --> GEN : Gpt instance + VarMap
+
+GEN -> CKPT : varmap.load(checkpoint)
+CKPT --> GEN : model weights
+
+GEN -> TOK : encode("RICK: ")
+TOK --> GEN : prompt_bytes: Vec<u8>
+
+note over GEN : context = prompt_bytes as Vec<u32>
+
+loop until '\\n' token or max_new_tokens (200)
+
+    GEN -> MODEL : forward(context[last context_len tokens])
+    MODEL --> GEN : logits  (1, T, 256)
+
+    GEN -> GEN : last_logits = logits[0, T-1, :]
+    GEN -> GEN : scaled = last_logits / temperature (0.8)
+    GEN -> GEN : apply_top_k(scaled, k=40)
+    GEN -> GEN : apply_top_p(scaled, p=0.9)
+    GEN -> GEN : token = weighted_sample(scaled, &mut rng)
+    GEN -> GEN : context.push(token)
+
+end
+
+GEN -> TOK : decode(context[prompt_len..])
+TOK --> GEN : generated text String
+GEN --> MAIN : "It's science, Morty! ..."
+
+MAIN -> DEV : println!("{}", generated_text)
+
+== Voice Synthesis ==
+
+MAIN -> BRIDGE : speak(TtsBridgeConfig {\n  text, character="RICK",\n  output="output.wav",\n  samples_dir="audio_samples",\n  python=".venv/bin/python3" })
+
+BRIDGE -> PY : spawn subprocess\n  python tts.py\n  --text "It's science, Morty! ..."\n  --speaker rick\n  --output output.wav\n  --samples-dir audio_samples
+
+PY -> SAMPLES : open rick_reference.wav
+SAMPLES --> PY : reference audio (22050 Hz mono, 3–15 s)
+
+note over PY : XTTS-v2 inference\n(~30–60 s on CPU)
+
+PY -> WAV : write synthesized audio
+PY --> BRIDGE : exit 0
+
+BRIDGE -> BRIDGE : verify output.wav exists
+BRIDGE --> MAIN : PathBuf("output.wav")
+
+MAIN -> DEV : println!("Audio saved to: output.wav")
+
+@enduml

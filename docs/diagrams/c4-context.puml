@@ -1,0 +1,24 @@
+@startuml c4-context
+!include <C4/C4_Context>
+
+LAYOUT_WITH_LEGEND()
+
+title System Context — Microverse Model
+
+Person(dev, "Developer", "Trains the model, generates\ncharacter dialogue, and\nsynthesizes character voices")
+
+System(microverse, "Microverse Model", "GPT-based Small Language Model\nbuilt in Rust. Trained on Rick & Morty\ntranscripts (S1–S8). Generates\ncharacter dialogue and voices.")
+
+System_Ext(fandom, "rickandmorty.fandom.com", "Rick & Morty episode transcript wiki.\nSource for all training data.")
+
+System_Ext(xtts, "Coqui XTTS-v2", "Pre-trained multilingual TTS model.\nUsed for voice cloning via\nreference audio clips.")
+
+System_Ext(yt, "YouTube — @RickandMorty", "Official channel. Source for\nhigh-quality reference audio\nclips for voice cloning.")
+
+Rel(dev, microverse, "train / generate / speak", "CLI (cargo / make)")
+Rel(microverse, fandom, "scrapes episode transcripts", "HTTPS + HTML parsing")
+Rel(microverse, xtts, "synthesizes voice", "Python subprocess")
+Rel(dev, yt, "downloads reference clips", "yt-dlp + ffmpeg")
+Rel(dev, microverse, "provides reference WAVs", "audio_samples/")
+
+@enduml

@@ -1,0 +1,40 @@
+@startuml c4-components
+!include <C4/C4_Component>
+
+LAYOUT_WITH_LEGEND()
+
+title Component Diagram — microverse-model binary (src/)
+
+Container_Boundary(bin, "microverse-model  (src/)") {
+    Component(main, "main.rs", "clap CLI", "Parses subcommands.\nRoutes to train / generate / speak.")
+
+    Component(train_mod, "train.rs", "train(TrainConfig)", "AdamW training loop.\nEval every 100 steps.\nCheckpoint save / resume.")
+
+    Component(gen_mod, "generate.rs", "generate_text(GenerateConfig)", "Autoregressive decoding.\nTemperature + top-k + top-p\nsampling with StdRng.")
+
+    Component(tts_mod, "tts_bridge.rs", "speak(TtsBridgeConfig)", "Spawns python/tts.py subprocess.\nValidates exit code and\noutput file presence.")
+
+    Component(model_mod, "model.rs", "Gpt + ModelConfig", "4-layer GPT decoder.\nCausal self-attention.\nPre-LayerNorm + FeedForward.")
+
+    Component(dataset_mod, "dataset.rs", "Dataset", "Loads corpus into memory.\nSamples (inputs, targets) batches\nas candle Tensors.")
+
+    Component(tokenizer_mod, "tokenizer.rs", "encode() / decode()", "Byte-level tokenization.\nVocab size = 256.")
+
+    Component(lib_mod, "lib.rs", "crate root", "Re-exports DialogueLine,\nwrite_dialogues_to_csv.\nDeclares all pub mod.")
+}
+
+ContainerDb(corpus, "train/val corpus", "Plain text\ndatasets/")
+ContainerDb(checkpoints, "*.safetensors", "checkpoints/")
+
+Rel(main, train_mod, "calls train(TrainConfig)")
+Rel(main, gen_mod, "calls generate() / generate_text()")
+Rel(main, tts_mod, "calls speak(TtsBridgeConfig)")
+Rel(train_mod, model_mod, "Gpt::new() + forward()")
+Rel(train_mod, dataset_mod, "Dataset::from_file() + random_batch()")
+Rel(train_mod, checkpoints, "varmap.save() / varmap.load()")
+Rel(gen_mod, model_mod, "Gpt::new() + forward()")
+Rel(gen_mod, tokenizer_mod, "encode() + decode()")
+Rel(gen_mod, checkpoints, "varmap.load()")
+Rel(dataset_mod, corpus, "reads entire file into Vec<u8>")
+
+@enduml

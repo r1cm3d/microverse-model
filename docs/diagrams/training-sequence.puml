@@ -1,0 +1,71 @@
+@startuml training-sequence
+skinparam backgroundColor #FEFEFE
+skinparam sequenceArrowThickness 1.5
+skinparam sequenceParticipantBorderColor #555555
+skinparam sequenceLifeLineBorderColor #888888
+skinparam sequenceBoxBorderColor #888888
+skinparam noteBorderColor #888888
+skinparam noteBackgroundColor #FFFFF0
+
+title Training Loop Sequence
+
+actor Developer as DEV
+participant "main.rs" as MAIN
+participant "train.rs" as TRAIN
+participant "dataset.rs" as DS
+participant "model.rs" as MODEL
+participant "AdamW\n(candle-nn)" as OPT
+database "checkpoints/" as CKPT
+
+DEV -> MAIN : cargo run --release -- train [--resume-from path]
+MAIN -> TRAIN : train(TrainConfig)
+
+TRAIN -> DS : Dataset::from_file(train_path, context_len=256)
+DS --> TRAIN : Dataset { data: Vec<u8>, context_len }
+
+TRAIN -> DS : Dataset::from_file(val_path, context_len=256)
+DS --> TRAIN : Dataset (validation)
+
+TRAIN -> MODEL : Gpt::new(ModelConfig)
+MODEL --> TRAIN : Gpt instance + VarMap
+
+alt resume_from is Some(path)
+    TRAIN -> CKPT : varmap.load(path)
+    CKPT --> TRAIN : weights loaded into VarMap
+    TRAIN -> DEV : println!("Resumed from {path}")
+end
+
+TRAIN -> OPT : AdamW::new(varmap.all_vars(),\n  lr=3e-4, weight_decay=0.1)
+OPT --> TRAIN : optimizer
+
+loop step = 0 .. max_steps (default 5000)
+
+    TRAIN -> DS : random_batch(batch_size=32, &mut rng)
+    DS --> TRAIN : (inputs, targets)  shape (32, 256)
+
+    TRAIN -> MODEL : forward(inputs)
+    MODEL --> TRAIN : logits  shape (32, 256, 256)
+
+    TRAIN -> TRAIN : cross_entropy_loss(logits, targets)\n  reshape: (32×256, 256) vs (32×256,)
+
+    TRAIN -> OPT : backward_step(&loss)
+    OPT --> TRAIN : gradients applied
+
+    alt step % eval_interval == 0  (default 100)
+        loop 20 validation batches
+            TRAIN -> DS : random_batch(val_dataset)
+            TRAIN -> MODEL : forward(val_inputs)
+        end
+        TRAIN -> DEV : println!("step {step} | train_loss: {:.4} | val_loss: {:.4}")
+    end
+
+    alt step % checkpoint_interval == 0  (default 100)
+        TRAIN -> CKPT : varmap.save("checkpoints/ckpt_{step:06}.safetensors")
+        TRAIN -> DEV : println!("Checkpoint saved: {path}")
+    end
+
+end
+
+TRAIN --> DEV : "Training complete"
+
+@enduml

@@ -1,0 +1,44 @@
+@startuml c4-containers
+!include <C4/C4_Container>
+
+LAYOUT_WITH_LEGEND()
+
+title Container Diagram — Microverse Model
+
+Person(dev, "Developer")
+
+System_Boundary(workspace, "Rust Workspace") {
+    Container(scraper, "scraper", "Rust binary\nscripts/scraper.rs", "Fetches episode transcripts\nfrom fandom wiki.\nOutputs raw CSV + JSON.")
+
+    Container(preprocessor, "preprocessor", "Rust binary\nscripts/preprocessor.rs", "Cleans raw CSV: strips stage\ndirections, normalizes unicode.\nSplits 90/10 train/val corpus.")
+
+    Container(cli, "microverse-model", "Rust binary\nsrc/main.rs", "CLI entry point.\ntrain — GPT training loop\ngenerate — text sampling\nspeak — full audio pipeline")
+
+    Container(tts_script, "tts.py", "Python 3.11 script\npython/tts.py", "Loads XTTS-v2 model.\nReads reference WAV.\nWrites synthesized audio.")
+}
+
+ContainerDb(raw_csv, "rick_morty_all_transcripts.csv", "CSV\ndatasets/", "Raw scraped dialogues.\n~8,360 rows.")
+
+ContainerDb(clean_csv, "rick_morty_transcripts_clean.csv", "CSV\ndatasets/", "Cleaned, re-indexed dialogues.\n~8,323 rows.")
+
+ContainerDb(corpus, "train_corpus.txt\nval_corpus.txt", "Plain text\ndatasets/", "Train (7,490) / val (833) lines.\nFormat: CHARACTER: line")
+
+ContainerDb(checkpoints, "ckpt_NNNNNN.safetensors", "safetensors\ncheckpoints/", "Model weight snapshots.\n~3.5 MB each.")
+
+ContainerDb(ref_audio, "*_reference.wav", "WAV files\naudio_samples/", "Reference audio for voice cloning.\n3–15 s, 22050 Hz mono.")
+
+System_Ext(fandom, "rickandmorty.fandom.com")
+
+Rel(dev, cli, "train / generate / speak", "CLI")
+Rel(scraper, fandom, "GET transcripts", "HTTPS")
+Rel(scraper, raw_csv, "writes")
+Rel(preprocessor, raw_csv, "reads")
+Rel(preprocessor, clean_csv, "writes")
+Rel(preprocessor, corpus, "writes 90/10 split")
+Rel(cli, corpus, "reads (train)")
+Rel(cli, checkpoints, "reads / writes (train + generate)")
+Rel(cli, tts_script, "spawns subprocess (speak)")
+Rel(tts_script, ref_audio, "reads reference clip")
+Rel(dev, ref_audio, "provides via yt-dlp + ffmpeg")
+
+@enduml

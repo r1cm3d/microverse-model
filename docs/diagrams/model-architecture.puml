@@ -1,0 +1,45 @@
+@startuml model-architecture
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam rectangleBorderColor #555555
+skinparam rectangleBorderThickness 1
+skinparam ArrowColor #555555
+skinparam ArrowThickness 1.5
+
+title GPT Decoder Architecture\nModelConfig defaults: vocab=256, d_model=128, n_heads=4, n_layers=4, context_len=256, d_ff=512
+
+rectangle "Input\n(B × T)  token IDs" as IN #ECEFF1
+
+rectangle "Token Embedding\n[vocab_size=256  ×  d_model=128]" as TE #BBDEFB
+
+rectangle "Positional Embedding\n[context_len=256  ×  d_model=128]" as PE #BBDEFB
+
+rectangle "⊕  broadcast_add\n(B × T × 128)" as ADD #FFF9C4
+
+rectangle "TransformerBlock  ×  n_layers=4\n\n  ┌─ LayerNorm (pre-norm)\n  ├─ CausalSelfAttention\n  │     Q = q_proj(x)  [128→128]   split into 4 heads × 32 dim\n  │     K = k_proj(x)  [128→128]   split into 4 heads × 32 dim\n  │     V = v_proj(x)  [128→128]   split into 4 heads × 32 dim\n  │     scores = Q · Kᵀ / √32  +  causal_mask\n  │     attn  = softmax(scores) · V\n  │     out   = out_proj(reshape(attn))  [128→128]\n  ├─ ⊕ residual\n  ├─ LayerNorm (pre-norm)\n  ├─ FeedForward\n  │     fc1: 128 → 512  (GELU activation)\n  │     fc2: 512 → 128\n  └─ ⊕ residual" as BLOCK #E8F5E9
+
+note right of BLOCK
+  Causal mask shape: (context_len, context_len)
+  mask[row, col] = 0.0   if col <= row
+                 = -1e9  if col > row
+  Sliced to (T, T) each forward pass.
+  Applied before softmax to prevent
+  attending to future positions.
+end note
+
+rectangle "Final LayerNorm" as LNF #E1BEE7
+
+rectangle "LM Head\n[d_model=128  ×  vocab_size=256]  (no bias)" as LMH #FFCDD2
+
+rectangle "Output\n(B × T × 256)  logits" as OUT #ECEFF1
+
+IN --> TE
+IN --> PE
+TE --> ADD
+PE --> ADD
+ADD --> BLOCK
+BLOCK --> LNF
+LNF --> LMH
+LMH --> OUT
+
+@enduml

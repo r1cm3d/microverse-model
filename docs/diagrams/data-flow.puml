@@ -1,0 +1,51 @@
+@startuml data-flow
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontSize 12
+skinparam ArrowColor #444444
+skinparam ArrowThickness 1.5
+skinparam componentBorderColor #555555
+skinparam componentBackgroundColor #F5F5F5
+skinparam databaseBorderColor #555555
+skinparam databaseBackgroundColor #E8F5E9
+skinparam noteBorderColor #888888
+skinparam noteBackgroundColor #FFFFF0
+
+title Data Flow — From Raw Transcripts to Synthesized Audio
+
+database "rickandmorty.fandom.com\n(Seasons 1–8)" as WIKI #BBDEFB
+
+component "**scraper**\nscripts/scraper.rs\n\nGET episode list per season\nParse HTML → DialogueLine structs\nFilter: name < 50 chars\nEscape quotes, write CSV" as SCRAPER #FFF3E0
+
+database "rick_morty_all_transcripts.csv\n~8,360 rows\nindex, season, episode, character, line" as RAW #C8E6C9
+
+component "**preprocessor**\nscripts/preprocessor.rs\n\nRemove stage directions [...]\nNormalize unicode (— → --, … → ...)\nFilter empty / >1000 char lines\nShuffle (seed=42), split 90/10" as PREPROC #FFF3E0
+
+database "train_corpus.txt  (7,490 lines)\nval_corpus.txt    (833 lines)\nFormat: CHARACTER: line" as CORPUS #C8E6C9
+
+component "**tokenizer**\nsrc/tokenizer.rs\n\nencode(): text → Vec<u8>\n(byte-level, vocab_size=256)" as TOK #E1F5FE
+
+component "**GPT decoder**\nsrc/model.rs\n\nToken emb + Positional emb\n4 × TransformerBlock\nLM Head → logits (B, T, 256)" as GPT #F3E5F5
+
+component "**Sampler**\nsrc/generate.rs\n\nlogits / temperature\n→ top-k filter\n→ top-p (nucleus) filter\n→ weighted categorical sample\n→ stop at \\n or max_tokens" as SAMPLE #F3E5F5
+
+note right of SAMPLE : Autoregressive loop:\neach new token is\nappended to context\nand fed back in.
+
+component "**TTS bridge**\nsrc/tts_bridge.rs + python/tts.py\n\nXTTS-v2 voice cloning\nreference WAV + text → WAV\n(~30–60 s on CPU)" as TTS #FFF3E0
+
+database "audio_samples/*_reference.wav\n22050 Hz mono, 3–15 s" as REF #C8E6C9
+
+database "output.wav\nSynthesized character audio" as OUT #FFCDD2
+
+WIKI --> SCRAPER : HTTPS / HTML
+SCRAPER --> RAW : writes
+RAW --> PREPROC : reads
+PREPROC --> CORPUS : writes
+CORPUS --> TOK : raw text
+TOK --> GPT : token IDs (Vec<u32>)
+GPT --> SAMPLE : logits
+SAMPLE --> GPT : next token (autoregressive)
+SAMPLE --> TTS : generated text string
+REF --> TTS : reference WAV (voice fingerprint)
+TTS --> OUT : synthesized WAV
+
+@enduml
